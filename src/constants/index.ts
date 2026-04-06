@@ -1,3 +1,14 @@
+export const CONTEXT_PRESETS = [
+  { label: '8k', value: 8192 },
+  { label: '16k', value: 16384 },
+  { label: '32k', value: 32768 },
+  { label: '64k', value: 65536 },
+  { label: '128k', value: 131072 },
+  { label: '256k', value: 262144 },
+  { label: '512k', value: 524288 },
+  { label: '1M', value: 1048576 },
+];
+
 export const QUANTIZATION_LEVELS: { label: string; bytesPerParam: number }[] = [
   { label: '4-bit', bytesPerParam: 0.5 },
   { label: '8-bit', bytesPerParam: 1 },

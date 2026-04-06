@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { 
   QUANTIZATION_LEVELS, 
-  HARDWARE_PROFILES 
+  HARDWARE_PROFILES,
+  CONTEXT_PRESETS
 } from '@/src/constants';
 import { 
   calculateInference, 
@@ -74,9 +75,24 @@ export default function CalculatorPage() {
                 </select>
               </div>
 
-              <div>
+              <div className="flex flex-wrap gap-2">
+                {CONTEXT_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => setContext(preset.value)}
+                    className={`px-3 py-1 text-xs font-medium rounded-full border transition-all ${
+                      context === preset.value
+                        ? 'bg-blue-500 border-blue-500 text-white'
+                        : 'bg-white border-slate-300 text-slate-600 hover:border-blue-500 hover:text-blue-500'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4">
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Context Window (Tokens)
+                  Custom Context Window (Tokens)
                 </label>
                 <input
                   type="number"
