@@ -1,65 +1,156 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React, { useState, useMemo } from 'react';
+import { 
+  QUANTIZATION_LEVELS, 
+  HARDWARE_PROFILES 
+} from '@/src/constants';
+import { 
+  calculateInference, 
+  getStatus 
+} from '@/src/lib/calculator';
+import { 
+  Quantization 
+} from '@/src/types';
+
+export default function CalculatorPage() {
+  const [params, setParams] = useState<number>(7);
+  const [quantization, setQuantization] = useState<Quantization>('4-bit');
+  const [context, setContext] = useState<number>(8192);
+  const [selectedHardware, setSelectedHardware] = useState<string>('');
+
+  const results = useMemo(() => {
+    const calc = calculateInference(params, quantization, context);
+    const hardware = HARDWARE_PROFILES.find(h => h.name === selectedHardware);
+    const status = getStatus(calc.totalRequiredGb, hardware?.vramGb);
+    
+    return { ...calc, status, hardwareVram: hardware?.vramGb };
+  }, [params, quantization, context, selectedHardware]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 text-slate-900">
+      <div className="max-w-5xl mx-auto">
+        <header className="mb-12 text-center">
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+            LLM Inference Calculator
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-4 text-lg text-slate-600">
+            Estimate VRAM requirements and hardware compatibility instantly.
           </p>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Inputs Section */}
+          <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+            <h2 className="text-xl font-semibold mb-6">Configuration</h2>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Model Parameters (Billions)
+                </label>
+                <input
+                  type="number"
+                  value={params}
+                  onChange={(e) => setParams(parseFloat(e.target.value) || 0)}
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Quantization
+                </label>
+                <select
+                  value={quantization}
+                  onChange={(e) => setQuantization(e.target.value as Quantization)}
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                >
+                  {QUANTIZATION_LEVELS.map((q) => (
+                    <option key={q.label} value={q.label}>
+                      {q.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Context Window (Tokens)
+                </label>
+                <input
+                  type="number"
+                  value={context}
+                  onChange={(e) => setContext(parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Target Hardware (Optional)
+                </label>
+                <select
+                  value={selectedHardware}
+                  onChange={(e) => setSelectedHardware(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                >
+                  <option value="">Select Hardware...</option>
+                  {HARDWARE_PROFILES.map((h) => (
+                    <option key={h.name} value={h.name}>
+                      {h.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </section>
+
+          {/* Results Section */}
+          <section className="bg-slate-900 text-white p-8 rounded-2xl shadow-xl">
+            <h2 className="text-xl font-semibold mb-6 text-slate-400">Live Results</h2>
+            
+            <div className="space-y-8">
+              <div className="flex justify-between items-end border-b border-slate-800 pb-4">
+                <span className="text-slate-400">Model Weights</span>
+                <span className="text-2xl font-mono">{results.modelWeightsGb.toFixed(2)} GB</span>
+              </div>
+
+              <div className="flex justify-between items-end border-b border-slate-800 pb-4">
+                <span className="text-slate-400">KV Cache (Est.)</span>
+                <span className="text-2xl font-mono">{results.kvCacheGb.toFixed(2)} GB</span>
+              </div>
+
+              <div className="pt-4">
+                <div className="text-4xl font-extrabold text-white">
+                  {results.totalRequiredGb.toFixed(2)} GB
+                </div>
+                <span className="text-sm text-slate-500 uppercase tracking-wider">Total VRAM Required</span>
+              </div>
+
+              {selectedHardware && (
+                <div className={`mt-8 p-4 rounded-xl border ${
+                  results.status === 'error' ? 'bg-red-500/10 border-red-500 text-red-500' :
+                  results.status === 'warning' ? 'bg-amber-500/10 border-amber-500 text-amber-500' :
+                  'bg-emerald-500/10 border-emerald-500 text-emerald-500'
+                }`}>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-lg font-bold">
+                      {results.status === 'error' ? '❌ Incompatible' : 
+                       results.status === 'warning' ? '⚠️ Tight Fit' : '✅ Compatible'}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm opacity-80">
+                    {results.hardwareVram 
+                      ? `Targeting ${selectedHardware} (${results.hardwareVram}GB)` 
+                      : 'Select hardware to check compatibility'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
